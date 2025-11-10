@@ -1,0 +1,9 @@
+graph TD
+    BB_0["BB_0\nt1 = 1\ni = t1\nt4 = 5\nt2 = (i < t4)\ngoto BB_1\n"]
+    BB_1["BB_1\nif t2 goto BB_2 else BB_3\n"]
+    BB_2["BB_2\nt8 = 1\nt6 = i + t8\ni = t6\ngoto BB_1\n"]
+    BB_3["BB_3\nt10 = 10\na = t10\n"]
+    BB_0 --> BB_1
+    BB_1 --> BB_2
+    BB_1 --> BB_3
+    BB_2 --> BB_1

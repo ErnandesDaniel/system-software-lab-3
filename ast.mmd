@@ -1,0 +1,124 @@
+graph TD;
+N0["source"]
+N1["source_item"]
+N0 --> N1
+N2["def"]
+N1 --> N2
+N3["func_signature"]
+N1 --> N3
+N4["identifier: test_loop_while"]
+N3 --> N4
+N5["("]
+N3 --> N5
+N6[")"]
+N3 --> N6
+N7["statement"]
+N1 --> N7
+N8["expression_statement"]
+N7 --> N8
+N9["expr"]
+N8 --> N9
+N10["binary_expr"]
+N9 --> N10
+N11["expr"]
+N10 --> N11
+N12["identifier: i"]
+N11 --> N12
+N13["="]
+N10 --> N13
+N14["expr"]
+N10 --> N14
+N15["literal"]
+N14 --> N15
+N16["dec: 1"]
+N15 --> N16
+N17[";"]
+N8 --> N17
+N18["statement"]
+N1 --> N18
+N19["loop_statement"]
+N18 --> N19
+N20["while"]
+N19 --> N20
+N21["expr"]
+N19 --> N21
+N22["binary_expr"]
+N21 --> N22
+N23["expr"]
+N22 --> N23
+N24["identifier: i"]
+N23 --> N24
+N25["<"]
+N22 --> N25
+N26["expr"]
+N22 --> N26
+N27["literal"]
+N26 --> N27
+N28["dec: 5"]
+N27 --> N28
+N29["statement"]
+N19 --> N29
+N30["block_statement"]
+N29 --> N30
+N31["{"]
+N30 --> N31
+N32["statement"]
+N30 --> N32
+N33["expression_statement"]
+N32 --> N33
+N34["expr"]
+N33 --> N34
+N35["binary_expr"]
+N34 --> N35
+N36["expr"]
+N35 --> N36
+N37["identifier: i"]
+N36 --> N37
+N38["="]
+N35 --> N38
+N39["expr"]
+N35 --> N39
+N40["binary_expr"]
+N39 --> N40
+N41["expr"]
+N40 --> N41
+N42["identifier: i"]
+N41 --> N42
+N43["+"]
+N40 --> N43
+N44["expr"]
+N40 --> N44
+N45["literal"]
+N44 --> N45
+N46["dec: 1"]
+N45 --> N46
+N47[";"]
+N33 --> N47
+N48["}"]
+N30 --> N48
+N49["loop_end"]
+N19 --> N49
+N50["statement"]
+N1 --> N50
+N51["expression_statement"]
+N50 --> N51
+N52["expr"]
+N51 --> N52
+N53["binary_expr"]
+N52 --> N53
+N54["expr"]
+N53 --> N54
+N55["identifier: a"]
+N54 --> N55
+N56["="]
+N53 --> N56
+N57["expr"]
+N53 --> N57
+N58["literal"]
+N57 --> N58
+N59["dec: 10"]
+N58 --> N59
+N60[";"]
+N51 --> N60
+N61["end"]
+N1 --> N61
