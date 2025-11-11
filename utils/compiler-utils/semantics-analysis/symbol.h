@@ -7,6 +7,7 @@
 typedef struct Symbol {
     char name[64]; // имя: "x", "counter", "result"
     Type* type; // тип: TYPE_INT, TYPE_BOOL, TYPE_ARRAY и т.д.
+    int stack_offset; //Сдвиг в стеке (место хранения переменной)
 } Symbol;
 
 typedef struct SymbolTable {
