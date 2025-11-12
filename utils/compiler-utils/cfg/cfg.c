@@ -37,7 +37,7 @@ void visit_source_item(CFGBuilderContext* ctx, const TSNode node) {
     }
 }
 
-CFG* cfg_build_from_ast(FunctionInfo* func_info, const char* source_code, const TSNode root_node) {
+CFG* cfg_build_from_ast(FunctionInfo* func_info, const char* source_code, const TSNode root_node, SymbolTable* out_locals) {
 
     // Создание CFG
     CFG* cfg = calloc(1, sizeof(CFG));
@@ -78,6 +78,9 @@ CFG* cfg_build_from_ast(FunctionInfo* func_info, const char* source_code, const 
     ctx.loop_depth = 0;
 
     visit_source_item(&ctx, root_node);
+
+    // Copy local_vars to output
+    *out_locals = ctx.local_vars;
 
     return cfg;
 }

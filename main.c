@@ -25,8 +25,8 @@ TSLanguage *tree_sitter_mylang(); // Объявляем функцию из pars
 
 
 int main(const int argc, char *argv[]) {
-    if (argc != 4) {
-        fprintf(stderr, "Usage: %s <input_file> <output_mmd> <output_dir>\n", argv[0]);
+    if (argc != 5) {
+        fprintf(stderr, "Usage: %s <input_file> <output_mmd> <output_dir> <asm_output_dir>\n", argv[0]);
         return 1;
     }
 
@@ -53,6 +53,29 @@ int main(const int argc, char *argv[]) {
                 if (strcmp(find_data.cFileName, ".") != 0 && strcmp(find_data.cFileName, "..") != 0) {
                     char file_path[256];
                     sprintf(file_path, "%s\\%s", argv[3], find_data.cFileName);
+                    DeleteFile(file_path);
+                }
+            } while (FindNextFile(hFind, &find_data));
+            FindClose(hFind);
+        }
+    }
+
+    // Создаем директорию для .asm файлов и очищаем ее
+    if (_mkdir(argv[4]) != 0 && errno != EEXIST) {
+        perror("Failed to create assembler output directory");
+        free(source_code);
+        return 1;
+    } else if (errno == EEXIST) {
+        // Директория существует, очищаем ее
+        char search_path[256];
+        sprintf(search_path, "%s\\*", argv[4]);
+        WIN32_FIND_DATA find_data;
+        HANDLE hFind = FindFirstFile(search_path, &find_data);
+        if (hFind != INVALID_HANDLE_VALUE) {
+            do {
+                if (strcmp(find_data.cFileName, ".") != 0 && strcmp(find_data.cFileName, "..") != 0) {
+                    char file_path[256];
+                    sprintf(file_path, "%s\\%s", argv[4], find_data.cFileName);
                     DeleteFile(file_path);
                 }
             } while (FindNextFile(hFind, &find_data));
@@ -110,8 +133,9 @@ int main(const int argc, char *argv[]) {
     // 2. Семантический анализ (генерация массива данных о функциях)
     build_global_symbol_table(root_node, source_code);
 
-    // Массив для хранения всех CFG
+    // Массивы для хранения всех CFG и locals
     CFG* function_cfgs[MAX_FUNCTIONS] = {0}; // инициализируем нулями
+    SymbolTable function_locals[MAX_FUNCTIONS];
 
     // Теперь генерируем файлы для каждой функции
     const uint32_t child_count = ts_node_child_count(root_node);
@@ -139,15 +163,17 @@ int main(const int argc, char *argv[]) {
         if (!func_info) continue;
 
         // Строим CFG для этой функции
-        CFG* func_cfg = cfg_build_from_ast(func_info, source_code, child);
+        SymbolTable locals;
+        CFG* func_cfg = cfg_build_from_ast(func_info, source_code, child, &locals);
         if (!func_cfg) continue;
 
         // Получаем индекс функции
         int idx = get_function_index(func_info);
         if (idx == -1) continue;
 
-        // Сохраняем граф в массив
+        // Сохраняем граф и locals в массивы
         function_cfgs[idx] = func_cfg;
+        function_locals[idx] = locals;
 
         if (func_cfg) {
             // Генерируем Mermaid диаграмму из CFG
@@ -177,7 +203,7 @@ int main(const int argc, char *argv[]) {
         if (function_cfgs[i] != NULL) {
             FunctionInfo* func_info = &global_functions[i];
             char asm_filepath[256];
-            sprintf(asm_filepath, "%s\\%s.asm", argv[3], func_info->name);
+            sprintf(asm_filepath, "%s\\%s.asm", argv[4], func_info->name);
 
             FILE* asm_file = fopen(asm_filepath, "w");
             if (!asm_file) {
@@ -193,7 +219,7 @@ int main(const int argc, char *argv[]) {
             char* asm_code = (char*)malloc(1024 * 1024); // 1MB buffer
             if (asm_code) {
                 asm_code[0] = '\0';
-                asm_build_from_cfg(asm_code, func_info->name, &func_info->params, function_cfgs[i]);
+                asm_build_from_cfg(asm_code, func_info, &function_locals[i], function_cfgs[i]);
                 fputs(asm_code, asm_file);
                 free(asm_code);
             }

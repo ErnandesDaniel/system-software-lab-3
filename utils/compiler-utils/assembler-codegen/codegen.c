@@ -2,11 +2,14 @@
 #include <stdio.h>
 #include <string.h>
 
-// Helper to align size to 16 bytes
+
+//Выравнивает размер стека до 16 байт, как требуется для Windows x64 ABI.
 static int align_to_16(int size) {
     return (size + 15) & ~15;
 }
 
+
+//рассчитывает смещения для локальных переменных в стеке (начиная с -8, уменьшая на 4 байта для каждой), вычисляет общий размер фрейма и выравнивает его.
 void codegen_layout_stack_frame(SymbolTable* locals, int* out_frame_size) {
     int offset = -8; // Start after return address
     for (int i = 0; i < locals->count; i++) {
@@ -18,8 +21,9 @@ void codegen_layout_stack_frame(SymbolTable* locals, int* out_frame_size) {
     *out_frame_size = align_to_16(frame_size);
 }
 
+//Генерирует пролог функции: метку, push rbp, mov rbp, rsp, sub rsp для резервирования места.
 void emit_prologue(CodeGenContext* ctx) {
-    sprintf(ctx->out + strlen(ctx->out), "%s:\n", ctx->current_function->name);
+    sprintf(ctx->out + strlen(ctx->out), "%s:\n", ctx->current_function);
     sprintf(ctx->out + strlen(ctx->out), "    push rbp\n");
     sprintf(ctx->out + strlen(ctx->out), "    mov rbp, rsp\n");
     if (ctx->frame_size > 0) {
@@ -27,12 +31,14 @@ void emit_prologue(CodeGenContext* ctx) {
     }
 }
 
+//Генерирует эпилог: mov rsp, rbp, pop rbp, ret.
 void emit_epilogue(CodeGenContext* ctx) {
     sprintf(ctx->out + strlen(ctx->out), "    mov rsp, rbp\n");
     sprintf(ctx->out + strlen(ctx->out), "    pop rbp\n");
     sprintf(ctx->out + strlen(ctx->out), "    ret\n");
 }
 
+//Загружает операнд (константу или переменную) в регистр.
 void emit_load_operand(CodeGenContext* ctx, Operand* op, const char* reg32) {
     if (op->kind == OPERAND_CONST) {
         if (op->data.const_val.type->kind == TYPE_INT || op->data.const_val.type->kind == TYPE_BOOL) {
@@ -46,11 +52,13 @@ void emit_load_operand(CodeGenContext* ctx, Operand* op, const char* reg32) {
     }
 }
 
+//Сохраняет регистр в переменную по смещению.
 void emit_store_to_var(CodeGenContext* ctx, const char* var_name, const char* reg32) {
     int offset = get_var_offset(&ctx->local_vars, var_name);
     sprintf(ctx->out + strlen(ctx->out), "    mov [rbp + %d], %s\n", offset, reg32);
 }
 
+//Находит смещение переменной по имени.
 int get_var_offset(SymbolTable* locals, const char* name) {
     for (int i = 0; i < locals->count; i++) {
         if (strcmp(locals->symbols[i].name, name) == 0) {
@@ -60,11 +68,14 @@ int get_var_offset(SymbolTable* locals, const char* name) {
     return 0; // Error, but for now
 }
 
-void asm_build_from_cfg(char* out, const char* func_name, SymbolTable* locals, CFG* cfg) {
+//проходит по блокам CFG, генерирует метки и инструкции для каждого IRInstruction (ASSIGN, ADD, SUB, LT, RET, JUMP, COND_BR).
+void asm_build_from_cfg(char* out, FunctionInfo* func_info, SymbolTable* locals, CFG* cfg) {
+
     int frame_size;
+
     codegen_layout_stack_frame(locals, &frame_size);
 
-    CodeGenContext ctx = {out, func_name, *locals, frame_size};
+    CodeGenContext ctx = {out, func_info->name, *locals, frame_size};
 
     emit_prologue(&ctx);
 
@@ -90,6 +101,14 @@ void asm_build_from_cfg(char* out, const char* func_name, SymbolTable* locals, C
                     emit_load_operand(&ctx, &inst->data.compute.operands[0], "eax");
                     emit_load_operand(&ctx, &inst->data.compute.operands[1], "ebx");
                     sprintf(ctx.out + strlen(ctx.out), "    sub eax, ebx\n");
+                    emit_store_to_var(&ctx, inst->data.compute.result, "eax");
+                    break;
+                case IR_LT:
+                    emit_load_operand(&ctx, &inst->data.compute.operands[0], "eax");
+                    emit_load_operand(&ctx, &inst->data.compute.operands[1], "ebx");
+                    sprintf(ctx.out + strlen(ctx.out), "    cmp eax, ebx\n");
+                    sprintf(ctx.out + strlen(ctx.out), "    setl al\n");
+                    sprintf(ctx.out + strlen(ctx.out), "    movzx eax, al\n");
                     emit_store_to_var(&ctx, inst->data.compute.result, "eax");
                     break;
                 case IR_RET:
