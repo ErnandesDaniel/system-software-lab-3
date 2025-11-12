@@ -7,8 +7,12 @@ if a>5 then{
 
 i=1;
 
+return i;
+
 }
 
 i=10;
+
+return i;
 
 end
