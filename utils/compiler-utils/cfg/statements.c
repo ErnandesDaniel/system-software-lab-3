@@ -243,7 +243,7 @@ void visit_return_statement(CFGBuilderContext* ctx, TSNode node) {
     Type* expr_type = eval_to_temp(ctx, expr_node, result_var);
     // Проверка: тип выражения должен соответствовать типу возврата функции
     if (ctx->current_function->return_type->kind == TYPE_VOID) {
-        fprintf(stderr, "Ошибка: функция '%s' объявлена как void, но пытается вернуть значение.\n",
+        fprintf(stderr, "Error: function '%s' is declared as void but attempts to return a value.\n",
                 ctx->current_function->name);
         // Можно проигнорировать или остановиться
     }

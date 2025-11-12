@@ -23,7 +23,7 @@ void codegen_layout_stack_frame(SymbolTable* locals, int* out_frame_size) {
 
 //Генерирует пролог функции: метку, push rbp, mov rbp, rsp, sub rsp для резервирования места.
 void emit_prologue(CodeGenContext* ctx) {
-    sprintf(ctx->out + strlen(ctx->out), "%s:\n", ctx->current_function);
+    sprintf(ctx->out + strlen(ctx->out), "%s:\n", ctx->current_function->name);
     sprintf(ctx->out + strlen(ctx->out), "    push rbp\n");
     sprintf(ctx->out + strlen(ctx->out), "    mov rbp, rsp\n");
     if (ctx->frame_size > 0) {
@@ -31,11 +31,11 @@ void emit_prologue(CodeGenContext* ctx) {
     }
 }
 
-//Генерирует эпилог: mov rsp, rbp, pop rbp, ret.
+//Генерирует эпилог: leave, ret.
 void emit_epilogue(CodeGenContext* ctx) {
-    sprintf(ctx->out + strlen(ctx->out), "    mov rsp, rbp\n");
-    sprintf(ctx->out + strlen(ctx->out), "    pop rbp\n");
-    sprintf(ctx->out + strlen(ctx->out), "    ret\n");
+    sprintf(ctx->out + strlen(ctx->out), "; Очистка стека и возврат\n");
+    sprintf(ctx->out + strlen(ctx->out), "    leave       ; эквивалент: mov rsp, rbp; pop rbp\n");
+    sprintf(ctx->out + strlen(ctx->out), "    ret         ; возвращаем eax как результат\n");
 }
 
 //Загружает операнд (константу или переменную) в регистр.
@@ -76,7 +76,7 @@ void asm_build_from_cfg(char* out, FunctionInfo* func_info, SymbolTable* locals,
 
     codegen_layout_stack_frame(locals, &frame_size);
 
-    CodeGenContext ctx = {out, func_info->name, *locals, frame_size};
+    CodeGenContext ctx = {out, func_info, *locals, frame_size};
 
     emit_prologue(&ctx);
 
@@ -216,12 +216,6 @@ void asm_build_from_cfg(char* out, FunctionInfo* func_info, SymbolTable* locals,
                         emit_store_to_var(&ctx, inst->data.call.result, "eax");
                     }
                     break;
-                case IR_RET:
-                    if (inst->data.ret.has_value) {
-                        emit_load_operand(&ctx, &inst->data.ret.value, "eax");
-                    }
-                    emit_epilogue(&ctx);
-                    break;
                 case IR_JUMP:
                     sprintf(ctx.out + strlen(ctx.out), "    jmp %s\n", inst->data.jump.target);
                     break;
@@ -231,24 +225,11 @@ void asm_build_from_cfg(char* out, FunctionInfo* func_info, SymbolTable* locals,
                     sprintf(ctx.out + strlen(ctx.out), "    jne %s\n", inst->data.cond_br.true_target);
                     sprintf(ctx.out + strlen(ctx.out), "    jmp %s\n", inst->data.cond_br.false_target);
                     break;
-                case IR_LOAD:
-                    // Assume array is a pointer, index is int
-                    {
-                        Operand array_op = {OPERAND_VAR, {.var = {inst->data.load.array, NULL}}};
-                        Operand index_op = {OPERAND_VAR, {.var = {inst->data.load.index, NULL}}};
-                        emit_load_operand(&ctx, &array_op, "ebx"); // array base
-                        emit_load_operand(&ctx, &index_op, "ecx"); // index
-                        sprintf(ctx.out + strlen(ctx.out), "    mov eax, [ebx + ecx*4]\n"); // assume 4-byte elements
-                        emit_store_to_var(&ctx, inst->data.load.result, "eax");
+                case IR_RET:
+                    if (inst->data.ret.has_value) {
+                        emit_load_operand(&ctx, &inst->data.ret.value, "eax");
                     }
-                    break;
-                case IR_SLICE:
-                    // Simplified: just copy array pointer
-                    {
-                        Operand array_op = {OPERAND_VAR, {.var = {inst->data.slice.array, NULL}}};
-                        emit_load_operand(&ctx, &array_op, "eax");
-                        emit_store_to_var(&ctx, inst->data.slice.result, "eax");
-                    }
+                    emit_epilogue(&ctx);
                     break;
                 default:
                     // Unsupported opcode
@@ -257,4 +238,5 @@ void asm_build_from_cfg(char* out, FunctionInfo* func_info, SymbolTable* locals,
             }
         }
     }
+    // No extra epilogue for main, as it's handled in IR_RET
 }

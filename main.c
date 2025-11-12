@@ -199,8 +199,14 @@ int main(const int argc, char *argv[]) {
             FILE* asm_file = fopen(asm_filepath, "w");
             if (asm_file) {
                 // Write NASM header
-                fprintf(asm_file, "global %s\n", func_name);
+                fprintf(asm_file, "bits 64\n");
+                fprintf(asm_file, "default rel\n");
                 fprintf(asm_file, "section .text\n\n");
+                if (strcmp(func_name, "main") == 0) {
+                    fprintf(asm_file, "global main\n");
+                } else {
+                    fprintf(asm_file, "global %s\n", func_name);
+                }
 
                 char* asm_code = (char*)malloc(1024 * 1024); // 1MB buffer
                 if (asm_code) {
