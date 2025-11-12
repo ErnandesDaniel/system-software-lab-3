@@ -179,7 +179,6 @@ int main(const int argc, char *argv[]) {
             // Генерируем Mermaid диаграмму из CFG
             char* func_mermaid = cfg_generate_mermaid(func_cfg);
 
-
             if (func_mermaid) {
                 // Создаем файл для функции
                 char filepath[256];
@@ -194,37 +193,28 @@ int main(const int argc, char *argv[]) {
                 free(func_mermaid);
             }
 
-            cfg_destroy_graph(func_cfg);
-        }
-    }
-
-    // Generate .asm files for each function
-    for (int i = 0; i < MAX_FUNCTIONS; i++) {
-        if (function_cfgs[i] != NULL) {
-            FunctionInfo* func_info = &global_functions[i];
-            char asm_filepath[256];
-            sprintf(asm_filepath, "%s\\%s.asm", argv[4], func_info->name);
-
-            FILE* asm_file = fopen(asm_filepath, "w");
-            if (!asm_file) {
-                fprintf(stderr, "Failed to create .asm file for function %s\n", func_info->name);
-                continue;
-            }
-
-            // Write NASM header
-            fprintf(asm_file, "global %s\n", func_info->name);
-            fprintf(asm_file, "section .text\n\n");
-
             // Generate assembly code
-            char* asm_code = (char*)malloc(1024 * 1024); // 1MB buffer
-            if (asm_code) {
-                asm_code[0] = '\0';
-                asm_build_from_cfg(asm_code, func_info, &function_locals[i], function_cfgs[i]);
-                fputs(asm_code, asm_file);
-                free(asm_code);
+            char asm_filepath[256];
+            sprintf(asm_filepath, "%s\\%s.asm", argv[4], func_name);
+            FILE* asm_file = fopen(asm_filepath, "w");
+            if (asm_file) {
+                // Write NASM header
+                fprintf(asm_file, "global %s\n", func_name);
+                fprintf(asm_file, "section .text\n\n");
+
+                char* asm_code = (char*)malloc(1024 * 1024); // 1MB buffer
+                if (asm_code) {
+                    asm_code[0] = '\0';
+                    asm_build_from_cfg(asm_code, func_info, &locals, func_cfg);
+                    fputs(asm_code, asm_file);
+                    free(asm_code);
+                }
+                fclose(asm_file);
+            } else {
+                fprintf(stderr, "Failed to create .asm file for function %s\n", func_name);
             }
 
-            fclose(asm_file);
+            cfg_destroy_graph(func_cfg);
         }
     }
 
