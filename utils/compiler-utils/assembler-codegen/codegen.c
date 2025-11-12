@@ -65,7 +65,8 @@ int get_var_offset(SymbolTable* locals, const char* name) {
             return locals->symbols[i].stack_offset;
         }
     }
-    return 0; // Error, but for now
+    fprintf(stderr, "Error: Variable '%s' not found in symbol table\n", name);
+    return -999; // Error offset
 }
 
 //проходит по блокам CFG, генерирует метки и инструкции для каждого IRInstruction (ASSIGN, ADD, SUB, LT, RET, JUMP, COND_BR).
@@ -79,9 +80,12 @@ void asm_build_from_cfg(char* out, FunctionInfo* func_info, SymbolTable* locals,
 
     emit_prologue(&ctx);
 
+    printf("DEBUG: cfg->num_blocks = %zu\n", cfg->num_blocks);
+
     // Traverse blocks
     for (size_t i = 0; i < cfg->num_blocks; i++) {
         BasicBlock* block = &cfg->blocks[i];
+        printf("DEBUG: Block %zu: id=%s, num_instructions=%zu\n", i, block->id, block->num_instructions);
         sprintf(ctx.out + strlen(ctx.out), "%s:\n", block->id);
 
         for (size_t j = 0; j < block->num_instructions; j++) {
