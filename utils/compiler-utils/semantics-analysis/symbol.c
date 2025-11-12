@@ -2,6 +2,9 @@
 #include <stdbool.h>
 
 #include "symbol.h"
+
+#include <stdio.h>
+
 #include "types.h"
 
 void symbol_table_init(SymbolTable* table) {
@@ -11,7 +14,10 @@ void symbol_table_init(SymbolTable* table) {
 
 bool symbol_table_add(SymbolTable* table, const char* name, Type* type) {
     if (!table || !name) return false;
-    if (table->count >= 64) return false; // переполнение
+    if (table->count >= 64) {
+        fprintf(stderr, "Error: Symbol table overflow, cannot add '%s'\n", name);
+        return false; // переполнение
+    }
 
     Symbol* sym = &table->symbols[table->count];
 

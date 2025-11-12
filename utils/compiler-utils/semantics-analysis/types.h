@@ -21,6 +21,8 @@ typedef struct Type {
     } data;
 } Type;
 
+//Освободить тип
+void free_type(Type* t);
 
 // Фабрики типов
 Type* make_bool_type(void);

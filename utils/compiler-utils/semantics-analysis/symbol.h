@@ -19,4 +19,7 @@ void symbol_table_init(SymbolTable* table);
 bool symbol_table_add(SymbolTable* table, const char* name, Type* type);
 Symbol* symbol_table_lookup(SymbolTable* table, const char* name);
 
+//Освободить таблицу
+void free_symbol_table(SymbolTable* table);
+
 #endif

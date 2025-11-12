@@ -27,7 +27,9 @@ Type* ensure_bool_expr(CFGBuilderContext* ctx, TSNode expr, char* result_var) {
 // вычисляет выражение и сохраняет его результат во временную переменную, имя которой возвращается в out_temp
 Type* eval_to_temp(CFGBuilderContext* ctx, TSNode expr, char* out_temp) {
     generate_temp_name(ctx, out_temp, 64);
-    return visit_expr(ctx, expr, out_temp);
+    Type* type = visit_expr(ctx, expr, out_temp);
+    symbol_table_add(&ctx->local_vars, out_temp, type);
+    return type;
 }
 
 
