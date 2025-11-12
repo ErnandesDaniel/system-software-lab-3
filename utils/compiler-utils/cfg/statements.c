@@ -91,9 +91,12 @@ void visit_loop_statement(CFGBuilderContext* ctx, TSNode node) {
 
     // 4. Безусловный переход в header из текущего блока
     emit_jump(ctx, header_block->id);
-    // 5. Header: условный переход
+    // 5. Header: вычисляем условие и условный переход
     ctx->current_block = header_block;
-    Operand cond_op = make_var_operand(cond_var, cond_type);
+    // Перевычисляем условие в header блоке
+    char header_cond_var[64];
+    Type* header_cond_type = eval_to_temp(ctx, condition_node, header_cond_var);
+    Operand cond_op = make_var_operand(header_cond_var, header_cond_type);
     if (is_until) {
         // until: повторять, пока условие ЛОЖНО → выход при true
         emit_cond_br(ctx, cond_op, exit_block->id, body_block->id);
