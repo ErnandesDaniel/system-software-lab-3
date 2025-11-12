@@ -1,16 +1,18 @@
 def main () of int
 
+a=7;
+
+if a>5 then {
+
 i=1;
 
+} else{
 
-while i<5 {
-
-
+i=4;
 
 }
 
-loop_end
-
+a=5;
 
 return i;
 
