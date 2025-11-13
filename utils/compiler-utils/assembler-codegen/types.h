@@ -1,6 +1,6 @@
 
-#include "../cfg/types.h"
-#include "../semantics-analysis/types.h"
+#include "compiler-utils/cfg/types.h"
+#include "compiler-utils/semantics-analysis/types.h"
 
 typedef struct CodeGenContext {
     char* out;// выходной .asm файл
