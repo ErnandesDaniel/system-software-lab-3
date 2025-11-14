@@ -5,7 +5,7 @@
 #include "types.h"
 #include "../../../lib/tree-sitter/lib/include/tree_sitter/api.h"
 
-CFG* cfg_build_from_ast(FunctionInfo* func_info, const char* source_code, TSNode root_node, SymbolTable* out_locals);
+CFG* cfg_build_from_ast(FunctionInfo* func_info, const char* source_code, TSNode root_node, SymbolTable* out_locals, FunctionTable* out_used_funcs);
 
 void cfg_destroy_graph(CFG* cfg);
 

@@ -302,6 +302,9 @@ Type* visit_call_expr(CFGBuilderContext* ctx, TSNode node, char* result_var) {
         return make_int_type();
     }
 
+    // Добавляем функцию в таблицу используемых функций
+    function_table_add(&ctx->used_funcs, callee);
+
     // 3. Обрабатываем аргументы
     Operand args[16] = {0}; // максимум 16 аргументов
     int num_args = 0;

@@ -81,6 +81,30 @@ int get_function_index(const FunctionInfo* func) {
     return -1;
 }
 
+// Инициализация таблицы функций
+void function_table_init(FunctionTable* table) {
+    table->count = 0;
+    memset(table->functions, 0, sizeof(table->functions));
+}
+
+// Добавление функции в таблицу
+bool function_table_add(FunctionTable* table, FunctionInfo* func) {
+    if (!table || !func || table->count >= 64) return false;
+    table->functions[table->count++] = func;
+    return true;
+}
+
+// Поиск функции в таблице
+FunctionInfo* function_table_lookup(FunctionTable* table, const char* name) {
+    if (!table || !name) return NULL;
+    for (int i = 0; i < table->count; i++) {
+        if (strcmp(table->functions[i]->name, name) == 0) {
+            return table->functions[i];
+        }
+    }
+    return NULL;
+}
+
 
 
 

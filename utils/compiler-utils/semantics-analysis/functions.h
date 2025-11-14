@@ -17,6 +17,11 @@ typedef struct FunctionInfo {
     FunctionKind kind;
 } FunctionInfo;
 
+typedef struct FunctionTable {
+    FunctionInfo* functions[64];
+    int count;
+} FunctionTable;
+
 // Глобальный реестр (массив) функций
 extern FunctionInfo global_functions[MAX_FUNCTIONS];
 extern int global_function_count;
@@ -34,6 +39,10 @@ void free_function_info(FunctionInfo* func);
 void free_all_functions(void);
 
 int get_function_index(const FunctionInfo* func);
+
+void function_table_init(FunctionTable* table);
+bool function_table_add(FunctionTable* table, FunctionInfo* func);
+FunctionInfo* function_table_lookup(FunctionTable* table, const char* name);
 
 #endif
 

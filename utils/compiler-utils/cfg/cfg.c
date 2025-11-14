@@ -37,7 +37,7 @@ void visit_source_item(CFGBuilderContext* ctx, const TSNode node) {
     }
 }
 
-CFG* cfg_build_from_ast(FunctionInfo* func_info, const char* source_code, const TSNode root_node, SymbolTable* out_locals) {
+CFG* cfg_build_from_ast(FunctionInfo* func_info, const char* source_code, const TSNode root_node, SymbolTable* out_locals, FunctionTable* out_used_funcs) {
 
     // Создание CFG
     CFG* cfg = calloc(1, sizeof(CFG));
@@ -58,6 +58,9 @@ CFG* cfg_build_from_ast(FunctionInfo* func_info, const char* source_code, const 
 
     // Инициализируем локальные переменные
     symbol_table_init(&ctx.local_vars);
+
+    // Инициализируем таблицу используемых функций
+    function_table_init(&ctx.used_funcs);
 
     // Копируем параметры в локальную область
     for (int i = 0; i < func_info->params.count; i++) {
@@ -81,6 +84,9 @@ CFG* cfg_build_from_ast(FunctionInfo* func_info, const char* source_code, const 
 
     // Copy local_vars to output
     *out_locals = ctx.local_vars;
+
+    // Copy used_funcs to output
+    *out_used_funcs = ctx.used_funcs;
 
     return cfg;
 }

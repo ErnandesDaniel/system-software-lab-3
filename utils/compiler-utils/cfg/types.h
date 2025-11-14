@@ -226,6 +226,9 @@ typedef struct CFGBuilderContext {
     // Локальные переменные текущей функции
     SymbolTable local_vars;
 
+    // Используемые функции
+    FunctionTable used_funcs;
+
 } CFGBuilderContext;
 
 #endif

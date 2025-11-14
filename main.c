@@ -133,9 +133,8 @@ int main(const int argc, char *argv[]) {
     // 2. Семантический анализ (генерация массива данных о функциях)
     build_global_symbol_table(root_node, source_code);
 
-    // Массивы для хранения всех CFG и locals
+    // Массивы для хранения всех CFG
     CFG* function_cfgs[MAX_FUNCTIONS] = {0}; // инициализируем нулями
-    SymbolTable function_locals[MAX_FUNCTIONS];
 
     // Теперь генерируем файлы для каждой функции
     const uint32_t child_count = ts_node_child_count(root_node);
@@ -166,17 +165,22 @@ int main(const int argc, char *argv[]) {
         if (func_info->kind == FUNCTION_DECLARATION) continue;
 
         // Строим CFG для этой функции
-        SymbolTable locals;
-        CFG* func_cfg = cfg_build_from_ast(func_info, source_code, child, &locals);
+
+        //Объявляем таблицу символов для переменных функции
+        SymbolTable local_vars;
+
+        //Объявляем таблицу функций для используемых функций из вне
+        FunctionTable local_funcs;
+
+        CFG* func_cfg = cfg_build_from_ast(func_info, source_code, child, &local_vars, &local_funcs);
         if (!func_cfg) continue;
 
         // Получаем индекс функции
         int idx = get_function_index(func_info);
         if (idx == -1) continue;
 
-        // Сохраняем граф и locals в массивы
+        // Сохраняем граф в массив
         function_cfgs[idx] = func_cfg;
-        function_locals[idx] = locals;
 
         if (func_cfg) {
             // Генерируем Mermaid диаграмму из CFG
@@ -214,7 +218,7 @@ int main(const int argc, char *argv[]) {
                 char* asm_code = (char*)malloc(1024 * 1024); // 1MB buffer
                 if (asm_code) {
                     asm_code[0] = '\0';
-                    asm_build_from_cfg(asm_code, func_info, &locals, func_cfg);
+                    asm_build_from_cfg(asm_code, func_info, &local_vars, func_cfg);
                     fputs(asm_code, asm_file);
                     free(asm_code);
                 }
