@@ -226,6 +226,48 @@
     }
   },
   {
+    "type": "func_declaration",
+    "named": true,
+    "fields": {
+      "signature": {
+        "multiple": false,
+        "required": true,
+        "types": [
+          {
+            "type": "func_signature",
+            "named": true
+          }
+        ]
+      }
+    }
+  },
+  {
+    "type": "func_definition",
+    "named": true,
+    "fields": {
+      "body": {
+        "multiple": true,
+        "required": false,
+        "types": [
+          {
+            "type": "statement",
+            "named": true
+          }
+        ]
+      },
+      "signature": {
+        "multiple": false,
+        "required": true,
+        "types": [
+          {
+            "type": "func_signature",
+            "named": true
+          }
+        ]
+      }
+    }
+  },
+  {
     "type": "func_signature",
     "named": true,
     "fields": {
@@ -573,27 +615,20 @@
   {
     "type": "source_item",
     "named": true,
-    "fields": {
-      "body": {
-        "multiple": true,
-        "required": false,
-        "types": [
-          {
-            "type": "statement",
-            "named": true
-          }
-        ]
-      },
-      "signature": {
-        "multiple": false,
-        "required": true,
-        "types": [
-          {
-            "type": "func_signature",
-            "named": true
-          }
-        ]
-      }
+    "fields": {},
+    "children": {
+      "multiple": false,
+      "required": true,
+      "types": [
+        {
+          "type": "func_declaration",
+          "named": true
+        },
+        {
+          "type": "func_definition",
+          "named": true
+        }
+      ]
     }
   },
   {
@@ -826,6 +861,11 @@
     "named": false
   },
   {
+    "type": "comment",
+    "named": true,
+    "extra": true
+  },
+  {
     "type": "dec",
     "named": true
   },
@@ -843,6 +883,10 @@
   },
   {
     "type": "end",
+    "named": false
+  },
+  {
+    "type": "extern def",
     "named": false
   },
   {

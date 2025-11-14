@@ -56,7 +56,12 @@ module.exports = grammar({
     name: 'mylang',
 
     // Пробелы и переносы строк игнорируются
-    extras: $ => [/\s/],
+    //extras: $ => [/\s/],
+
+    extras: $ => [
+        /\s/,                     // пробелы, табы, переводы строк
+        $.comment                 // ← добавляем комментарии как "лишние" токены
+    ],
 
     word: $ => $.identifier,
 
@@ -75,9 +80,30 @@ module.exports = grammar({
         // sourceItem: {
         // |funcDef: 'def' funcSignature statement* 'end';
         // };
+        source_item: $ => choice(
+            //Объявление внешней функции (из библиотек Си)
+            $.func_declaration,
+            //Объявление внутренней функции
+            $.func_definition
+        ),
+
+        // Определение элемента импортируемого кода.
+        // funcDec: 'extern def' funcSignature 'end';
+        func_declaration: $ => seq(
+            //ключевое слово для объявления внешней функции
+            'extern def',
+            // Далее следует сигнатура функции
+            field('signature', $.func_signature),
+            // Ключевое слово 'end', закрывающее объявление внешней функции
+            'end'
+        ),
+
+        // sourceItem: {
+        // |funcDef: 'def' funcSignature statement* 'end';
+        // };
         // Определение элемента исходного кода. В текущей грамматике только функции.
         // funcDef: 'def' funcSignature statement* 'end';
-        source_item: $ => seq(
+        func_definition: $ => seq(
             // Ключевое слово 'def' как идентификатор объявления функции
             'def',
             // Далее следует сигнатура функции
@@ -358,6 +384,13 @@ module.exports = grammar({
             $.hex,
             $.bits,
             $.dec
+        ),
+
+        comment: $ => token(
+            choice(
+                seq('//', /.*/),                      // однострочный: // ...
+                seq('/*', /[^*]*\*+([^/*][^*]*\*+)*/, '/')  // многострочный: /* ... */
+            )
         ),
     },
 });
