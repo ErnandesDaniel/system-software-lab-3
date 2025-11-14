@@ -146,8 +146,10 @@ int main(const int argc, char *argv[]) {
 
         if (strcmp(ts_node_type(child), "source_item") != 0) continue;
 
+        TSNode function_node=ts_node_child(child, 0);
+
         // Находим сигнатуру функции
-        const TSNode signature = ts_node_child_by_field_name(child, "signature", strlen("signature"));
+        const TSNode signature = ts_node_child_by_field_name(function_node, "signature", strlen("signature"));
         if (ts_node_is_null(signature)) continue;
 
         // Находим имя функции
@@ -161,7 +163,7 @@ int main(const int argc, char *argv[]) {
         FunctionInfo* func_info = find_function(func_name);
         if (!func_info) continue;
 
-        // Пропускаем декларации функций (только определения)
+        //Пропускаем декларации функций (только определения)
         if (func_info->kind == FUNCTION_DECLARATION) continue;
 
         // Строим CFG для этой функции

@@ -14,7 +14,9 @@ TSLanguage *tree_sitter_mylang(); // Объявляем функцию из pars
 // Обрабатывает тело функции (все statement'ы внутри source_item)
 void visit_source_item(CFGBuilderContext* ctx, const TSNode node) {
 
-    const uint32_t child_count = ts_node_child_count(node);
+    TSNode function_node=ts_node_child(node, 0);
+
+    const uint32_t child_count = ts_node_child_count(function_node);
 
     // Начинаем с индекса 2:
     //   0 = 'def'
@@ -23,7 +25,7 @@ void visit_source_item(CFGBuilderContext* ctx, const TSNode node) {
 
     for (uint32_t i = 2; i < child_count; i++) {
 
-        const TSNode stmt = ts_node_child(node, i);
+        const TSNode stmt = ts_node_child(function_node, i);
 
         const char* stmt_type = ts_node_type(stmt);
 

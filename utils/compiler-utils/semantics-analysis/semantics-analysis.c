@@ -129,7 +129,8 @@ static void process_function(TSNode source_item, const char* source) {
 
     // Определяем тип функции: declaration или definition
     FunctionKind kind = FUNCTION_DECLARATION;
-    if (strcmp(func_type, "function_definition") == 0) {
+
+    if (strcmp(func_type, "func_definition") == 0) {
         kind = FUNCTION_DEFINITION;
     }
 
