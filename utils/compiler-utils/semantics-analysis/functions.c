@@ -13,7 +13,7 @@ void init_function_registry(void) {
     // Массив global_functions не нужно обнулять явно — register_function перезапишет нужные поля
 }
 
-bool register_function(const char* name, Type* ret_type) {
+bool register_function(const char* name, Type* ret_type, FunctionKind kind) {
 
     if (!name) return false;
 
@@ -29,6 +29,9 @@ bool register_function(const char* name, Type* ret_type) {
     // Устанавливаем возвращаемый тип
     // Если ret_type == NULL, считаем, что функция возвращает void
     func->return_type = ret_type ? ret_type : make_void_type();
+
+    // Устанавливаем тип функции
+    func->kind = kind;
 
     // Инициализируем таблицу параметров функции
     symbol_table_init(&func->params);

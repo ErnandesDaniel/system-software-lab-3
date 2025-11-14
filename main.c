@@ -162,6 +162,9 @@ int main(const int argc, char *argv[]) {
         FunctionInfo* func_info = find_function(func_name);
         if (!func_info) continue;
 
+        // Пропускаем декларации функций (только определения)
+        if (func_info->kind == FUNCTION_DECLARATION) continue;
+
         // Строим CFG для этой функции
         SymbolTable locals;
         CFG* func_cfg = cfg_build_from_ast(func_info, source_code, child, &locals);

@@ -121,7 +121,18 @@ static void process_parameters(TSNode params_node, SymbolTable* params_table, co
 }
 
 // Обрабатывает одну функцию (узел "source_item")
-static void process_function(TSNode func_item, const char* source) {
+static void process_function(TSNode source_item, const char* source) {
+
+    TSNode func_item=ts_node_child(source_item, 0);
+
+    const char* func_type=ts_node_type(func_item);
+
+    // Определяем тип функции: declaration или definition
+    FunctionKind kind = FUNCTION_DECLARATION;
+    if (strcmp(func_type, "function_definition") == 0) {
+        kind = FUNCTION_DEFINITION;
+    }
+
     // Имя функции: поле "name" в func_signature
     const TSNode sig_node = ts_node_child_by_field_name(func_item, "signature", 9);
     if (ts_node_is_null(sig_node)) return;
@@ -139,7 +150,7 @@ static void process_function(TSNode func_item, const char* source) {
     // Если ret_type == NULL → register_function создаст void
 
     // Регистрируем функцию
-    if (!register_function(func_name, ret_type)) {
+    if (!register_function(func_name, ret_type, kind)) {
         // Ошибка: слишком много функций
         return;
     }
