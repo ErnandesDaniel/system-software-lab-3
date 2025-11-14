@@ -9,7 +9,8 @@ static int align_to_16(int size) {
 }
 
 
-//рассчитывает смещения для локальных переменных в стеке (начиная с -8, уменьшая на 4 байта для каждой), вычисляет общий размер фрейма и выравнивает его.
+//рассчитывает смещения для локальных переменных в стеке (начиная с -8, уменьшая на 4 байта для каждой).
+// Параметры не сохраняются в стек, а используются напрямую из регистров.
 void codegen_layout_stack_frame(SymbolTable* locals, int* out_frame_size) {
     int offset = -8; // Start after return address
     for (int i = 0; i < locals->count; i++) {
@@ -22,10 +23,12 @@ void codegen_layout_stack_frame(SymbolTable* locals, int* out_frame_size) {
 }
 
 //Генерирует пролог функции: метку, push rbp, mov rbp, rsp, sub rsp для резервирования места.
+// Параметры используются напрямую из регистров, без сохранения в стек.
 void emit_prologue(CodeGenContext* ctx) {
     sprintf(ctx->out + strlen(ctx->out), "%s:\n", ctx->current_function->name);
     sprintf(ctx->out + strlen(ctx->out), "    push rbp\n");
     sprintf(ctx->out + strlen(ctx->out), "    mov rbp, rsp\n");
+
     if (ctx->frame_size > 0) {
         sprintf(ctx->out + strlen(ctx->out), "    sub rsp, %d\n", ctx->frame_size);
     }
@@ -39,6 +42,7 @@ void emit_epilogue(CodeGenContext* ctx) {
 }
 
 //Загружает операнд (константу или переменную) в регистр.
+// Для параметров использует регистры напрямую.
 void emit_load_operand(CodeGenContext* ctx, Operand* op, const char* reg32) {
     if (op->kind == OPERAND_CONST) {
         if (op->data.const_val.type->kind == TYPE_INT || op->data.const_val.type->kind == TYPE_BOOL) {
@@ -47,6 +51,15 @@ void emit_load_operand(CodeGenContext* ctx, Operand* op, const char* reg32) {
             // Handle other types if needed
         }
     } else if (op->kind == OPERAND_VAR) {
+        // Check if it's a parameter
+        for (int i = 0; i < ctx->current_function->params.count && i < 4; i++) {
+            if (strcmp(ctx->current_function->params.symbols[i].name, op->data.var.name) == 0) {
+                const char* param_regs[] = {"ecx", "edx", "r8d", "r9d"};
+                sprintf(ctx->out + strlen(ctx->out), "    mov %s, %s\n", reg32, param_regs[i]);
+                return;
+            }
+        }
+        // It's a local variable
         int offset = get_var_offset(&ctx->local_vars, op->data.var.name);
         sprintf(ctx->out + strlen(ctx->out), "    mov %s, [rbp + %d]\n", reg32, offset);
     }
@@ -70,7 +83,16 @@ int get_var_offset(SymbolTable* locals, const char* name) {
 }
 
 //проходит по блокам CFG, генерирует метки и инструкции для каждого IRInstruction (ASSIGN, ADD, SUB, LT, RET, JUMP, COND_BR).
-void asm_build_from_cfg(char* out, FunctionInfo* func_info, SymbolTable* locals, CFG* cfg) {
+void asm_build_from_cfg(char* out, FunctionInfo* func_info, SymbolTable* locals, CFG* cfg, FunctionTable* local_funcs) {
+
+    // Generate extern declarations for used functions
+    for (int i = 0; i < local_funcs->count; i++) {
+        FunctionInfo* func = local_funcs->functions[i];
+        if (func) {
+            sprintf(out + strlen(out), "extern %s\n", func->name);
+        }
+    }
+    sprintf(out + strlen(out), "\n");
 
     int frame_size;
 
@@ -203,19 +225,17 @@ void asm_build_from_cfg(char* out, FunctionInfo* func_info, SymbolTable* locals,
                     emit_store_to_var(&ctx, inst->data.unary.result, "eax");
                     break;
                 case IR_CALL:
-                    // Push arguments in reverse order (x64 calling convention)
-                    for (int k = inst->data.call.num_args - 1; k >= 0; k--) {
-                        emit_load_operand(&ctx, &inst->data.call.args[k], "eax");
-                        sprintf(ctx.out + strlen(ctx.out), "    push eax\n");
-                    }
-                    sprintf(ctx.out + strlen(ctx.out), "    call %s\n", inst->data.call.func_name);
-                    if (inst->data.call.num_args > 0) {
-                        sprintf(ctx.out + strlen(ctx.out), "    add esp, %d\n", inst->data.call.num_args * 4);
-                    }
-                    if (strcmp(inst->data.call.result, "") != 0) {
-                        emit_store_to_var(&ctx, inst->data.call.result, "eax");
-                    }
-                    break;
+                     // Microsoft x64 calling convention: pass args in rcx, rdx, r8, r9
+                     // Use 32-bit registers for int/bool types
+                     const char* arg_regs[] = {"ecx", "edx", "r8d", "r9d"};
+                     for (int k = 0; k < inst->data.call.num_args && k < 4; k++) {
+                         emit_load_operand(&ctx, &inst->data.call.args[k], arg_regs[k]);
+                     }
+                     sprintf(ctx.out + strlen(ctx.out), "    call %s\n", inst->data.call.func_name);
+                     if (strcmp(inst->data.call.result, "") != 0) {
+                         emit_store_to_var(&ctx, inst->data.call.result, "eax");
+                     }
+                     break;
                 case IR_JUMP:
                     sprintf(ctx.out + strlen(ctx.out), "    jmp %s\n", inst->data.jump.target);
                     break;

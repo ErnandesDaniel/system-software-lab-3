@@ -22,7 +22,7 @@ void codegen_layout_stack_frame(SymbolTable* locals, int* out_frame_size);
 // Сохраняет смещения в symbol->stack_offset.
 // Пока можно считать, что все типы — 4 байта → проще.
 
-void asm_build_from_cfg(char* out, FunctionInfo* func_info, SymbolTable* locals, CFG* cfg);
+void asm_build_from_cfg(char* out, FunctionInfo* func_info, SymbolTable* locals, CFG* cfg, FunctionTable* local_funcs);
 
 // 🔹 2.2. Точка входа: генерация всей функции
 // Что делает:

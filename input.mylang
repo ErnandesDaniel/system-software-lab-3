@@ -1,12 +1,12 @@
 
-extern def printf(x of int) of int end
+//extern def printf(x of int) of int end
 
-/*
+
 def square(x of int) of int
     return x * x;
 end
 
-*/
+
 
 
 def main () of int
@@ -21,7 +21,7 @@ i=i+1;
 
 loop_end
 
-//y=square(2);
+y=square(2);
 
 return i;
 
