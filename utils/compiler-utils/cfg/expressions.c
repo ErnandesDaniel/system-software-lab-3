@@ -79,7 +79,7 @@ Type* visit_binary_expr(CFGBuilderContext* ctx, TSNode node, char* result_var){
 
         const char* left_type=ts_node_type(left);
 
-        // Левый операнд должен быть идентификатором
+        // Левый операнд должен быть выражением с дочерним идентификатором
         if (strcmp(left_type, "expr") != 0) {
             fprintf(stderr, "Error: left operand of assignment must be an expr->identifier.\n");
         }
@@ -274,14 +274,26 @@ Type* visit_call_expr(CFGBuilderContext* ctx, TSNode node, char* result_var) {
         func_expr = ts_node_child(node, 0); // fallback
     }
 
+
+    const char* func_expr_type=ts_node_type(func_expr);
+
+    // выражение функции должно быть выражением с дочерним идентификатором
+    if (strcmp(func_expr_type, "expr") != 0) {
+        fprintf(stderr, "Error: function expression must be an expr->identifier.\n");
+    }
+
+    TSNode func_expr_child_node = ts_node_child(func_expr, 0);
+
+    const char* func_expr_child_node_type=ts_node_type(func_expr_child_node);
+
     // Функция должна быть идентификатором
-    if (strcmp(ts_node_type(func_expr), "identifier") != 0) {
-        fprintf(stderr, "Ошибка: вызываемое выражение должно быть идентификатором функции.\n");
+    if (strcmp(func_expr_child_node_type, "identifier") != 0) {
+        fprintf(stderr, "Error: the called expression must be a function identifier.\n");
         return make_int_type(); // заглушка
     }
 
     char func_name[64];
-    get_node_text(func_expr, ctx->source_code, func_name, sizeof(func_name));
+    get_node_text(func_expr_child_node, ctx->source_code, func_name, sizeof(func_name));
 
     // 2. Находим информацию о функции
     FunctionInfo* callee = find_function(func_name);
