@@ -1,6 +1,51 @@
 #include "types.h"
 #include <stdio.h>
 #include <string.h>
+#include <stdlib.h>
+
+
+// Функция для обработки escape-последовательностей в строке и генерации байтового массива
+void emit_string_data(char* data_section, const char* input, const char* label) {
+    size_t len = strlen(input);
+    char* buffer = (char*)malloc(len * 2 + 1); // Достаточно места для экранирования
+    size_t buf_idx = 0;
+
+    for (size_t i = 0; i < len; i++) {
+        if (input[i] == '\\' && i + 1 < len) {
+            switch (input[i + 1]) {
+                case 'n': buffer[buf_idx++] = 10; i++; break; // \n -> 10
+                case 't': buffer[buf_idx++] = 9; i++; break;  // \t -> 9
+                case 'r': buffer[buf_idx++] = 13; i++; break; // \r -> 13
+                case 'b': buffer[buf_idx++] = 8; i++; break;  // \b -> 8
+                case 'f': buffer[buf_idx++] = 12; i++; break; // \f -> 12
+                case 'v': buffer[buf_idx++] = 11; i++; break; // \v -> 11
+                case 'a': buffer[buf_idx++] = 7; i++; break;  // \a -> 7
+                case '\\': buffer[buf_idx++] = 92; i++; break; // \\ -> 92
+                case '"': buffer[buf_idx++] = 34; i++; break;  // \" -> 34
+                case '\'': buffer[buf_idx++] = 39; i++; break; // \' -> 39
+                case '0': buffer[buf_idx++] = 0; i++; break;   // \0 -> 0
+                default:
+                    // Неизвестная escape-последовательность, копируем как есть
+                    buffer[buf_idx++] = input[i];
+                    break;
+            }
+        } else {
+            buffer[buf_idx++] = input[i];
+        }
+    }
+
+    // Генерируем db директиву с байтами
+    sprintf(data_section + strlen(data_section), "%s db ", label);
+    for (size_t i = 0; i < buf_idx; i++) {
+        sprintf(data_section + strlen(data_section), "%d", (unsigned char)buffer[i]);
+        if (i < buf_idx - 1) {
+            sprintf(data_section + strlen(data_section), ", ");
+        }
+    }
+    sprintf(data_section + strlen(data_section), ", 0\n");
+
+    free(buffer);
+}
 
 
 //Выравнивает размер стека так, чтобы после push rbp стек был выровнен по 16 байтам перед вызовами функций.
@@ -53,10 +98,10 @@ void emit_load_operand(CodeGenContext* ctx, Operand* op, const char* reg32) {
         if (op->data.const_val.type->kind == TYPE_INT || op->data.const_val.type->kind == TYPE_BOOL) {
             sprintf(ctx->out + strlen(ctx->out), "    mov %s, %d\n", reg32, op->data.const_val.value.integer);
         } else if (op->data.const_val.type->kind == TYPE_STRING) {
-            // For strings, load address of string constant
+            // For strings, load address of string constant with escape sequence processing
             char label[32];
             sprintf(label, "str_%d", ctx->string_counter++);
-            sprintf(ctx->data_section + strlen(ctx->data_section), "%s db '%s', 0\n", label, op->data.const_val.value.string);
+            emit_string_data(ctx->data_section, op->data.const_val.value.string, label);
             sprintf(ctx->out + strlen(ctx->out), "    lea %s, [%s]\n", reg32, label);
         } else {
             // Handle other types if needed
