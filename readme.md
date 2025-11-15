@@ -60,12 +60,10 @@ nasm -f win64 main.asm -o main.obj
 gcc main.obj -o main.exe
 
 Запустить программу можно через
-.\main.exe
+.\program.exe
 
 Посмотреть результат можно через:
 echo $LASTEXITCODE
-
-
 
 подключить к ассемблеру функции malloc, gets, puts
 
@@ -74,6 +72,4 @@ echo $LASTEXITCODE
 тело пустое
 
 генерируем вызов в ассемблере в соответствие с конвенкцией
-
-
 
