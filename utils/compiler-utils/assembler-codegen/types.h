@@ -8,6 +8,8 @@ typedef struct CodeGenContext {
     FunctionInfo* current_function;
     SymbolTable local_vars; // ссылка на локальные переменные с заполненным stack_offset
     int frame_size;               // общий размер стекового фрейма (выровненный до 16 байт)
+    int string_counter;
+    char data_section[4096];
 } CodeGenContext;
 
 

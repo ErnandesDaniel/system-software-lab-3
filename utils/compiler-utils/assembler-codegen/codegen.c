@@ -36,6 +36,7 @@ void emit_prologue(CodeGenContext* ctx) {
     if (ctx->frame_size > 0) {
         sprintf(ctx->out + strlen(ctx->out), "    sub rsp, %d\n", ctx->frame_size);
     }
+    ctx->string_counter = 0;
 }
 
 //Генерирует эпилог: leave, ret.
@@ -51,6 +52,12 @@ void emit_load_operand(CodeGenContext* ctx, Operand* op, const char* reg32) {
     if (op->kind == OPERAND_CONST) {
         if (op->data.const_val.type->kind == TYPE_INT || op->data.const_val.type->kind == TYPE_BOOL) {
             sprintf(ctx->out + strlen(ctx->out), "    mov %s, %d\n", reg32, op->data.const_val.value.integer);
+        } else if (op->data.const_val.type->kind == TYPE_STRING) {
+            // For strings, load address of string constant
+            char label[32];
+            sprintf(label, "str_%d", ctx->string_counter++);
+            sprintf(ctx->data_section + strlen(ctx->data_section), "%s db '%s', 0\n", label, op->data.const_val.value.string);
+            sprintf(ctx->out + strlen(ctx->out), "    lea %s, [%s]\n", reg32, label);
         } else {
             // Handle other types if needed
         }
@@ -102,7 +109,7 @@ void asm_build_from_cfg(char* out, FunctionInfo* func_info, SymbolTable* locals,
 
     codegen_layout_stack_frame(locals, &frame_size);
 
-    CodeGenContext ctx = {out, func_info, *locals, frame_size};
+    CodeGenContext ctx = {out, func_info, *locals, frame_size, 0, ""};
 
     emit_prologue(&ctx);
 
@@ -118,8 +125,21 @@ void asm_build_from_cfg(char* out, FunctionInfo* func_info, SymbolTable* locals,
             IRInstruction* inst = &block->instructions[j];
             switch (inst->opcode) {
                 case IR_ASSIGN:
-                    emit_load_operand(&ctx, &inst->data.assign.value, "eax");
-                    emit_store_to_var(&ctx, inst->data.assign.target, "eax");
+                    if (inst->data.assign.value.kind == OPERAND_CONST && inst->data.assign.value.data.const_val.type->kind == TYPE_STRING) {
+                        // For string assignment, load address directly to variable
+                        emit_load_operand(&ctx, &inst->data.assign.value, "rax");
+                        sprintf(ctx.out + strlen(ctx.out), "    mov [rbp + %d], rax\n", get_var_offset(&ctx.local_vars, inst->data.assign.target));
+                    } else if (inst->data.assign.value.kind == OPERAND_VAR &&
+                              symbol_table_lookup(&ctx.local_vars, inst->data.assign.value.data.var.name) &&
+                              symbol_table_lookup(&ctx.local_vars, inst->data.assign.value.data.var.name)->type->kind == TYPE_STRING) {
+                        // String variable assignment
+                        int offset = get_var_offset(&ctx.local_vars, inst->data.assign.value.data.var.name);
+                        sprintf(ctx.out + strlen(ctx.out), "    mov rax, [rbp + %d]\n", offset);
+                        sprintf(ctx.out + strlen(ctx.out), "    mov [rbp + %d], rax\n", get_var_offset(&ctx.local_vars, inst->data.assign.target));
+                    } else {
+                        emit_load_operand(&ctx, &inst->data.assign.value, "eax");
+                        emit_store_to_var(&ctx, inst->data.assign.target, "eax");
+                    }
                     break;
                 case IR_ADD:
                     emit_load_operand(&ctx, &inst->data.compute.operands[0], "eax");
@@ -230,10 +250,22 @@ void asm_build_from_cfg(char* out, FunctionInfo* func_info, SymbolTable* locals,
                     break;
                 case IR_CALL:
                      // Microsoft x64 calling convention: pass args in rcx, rdx, r8, r9
-                     // Use 32-bit registers for int/bool types
-                     const char* arg_regs[] = {"ecx", "edx", "r8d", "r9d"};
+                     // Use 32-bit registers for int/bool types, 64-bit for strings
+                     const char* arg_regs_32[] = {"ecx", "edx", "r8d", "r9d"};
+                     const char* arg_regs_64[] = {"rcx", "rdx", "r8", "r9"};
                      for (int k = 0; k < inst->data.call.num_args && k < 4; k++) {
-                         emit_load_operand(&ctx, &inst->data.call.args[k], arg_regs[k]);
+                         if (inst->data.call.args[k].kind == OPERAND_VAR &&
+                             symbol_table_lookup(&ctx.local_vars, inst->data.call.args[k].data.var.name) &&
+                             symbol_table_lookup(&ctx.local_vars, inst->data.call.args[k].data.var.name)->type->kind == TYPE_STRING) {
+                             // String variable - load 64-bit address
+                             int offset = get_var_offset(&ctx.local_vars, inst->data.call.args[k].data.var.name);
+                             sprintf(ctx.out + strlen(ctx.out), "    mov %s, [rbp + %d]\n", arg_regs_64[k], offset);
+                         } else if (inst->data.call.args[k].kind == OPERAND_CONST &&
+                             inst->data.call.args[k].data.const_val.type->kind == TYPE_STRING) {
+                             emit_load_operand(&ctx, &inst->data.call.args[k], arg_regs_64[k]);
+                         } else {
+                             emit_load_operand(&ctx, &inst->data.call.args[k], arg_regs_32[k]);
+                         }
                      }
                      sprintf(ctx.out + strlen(ctx.out), "    sub rsp, 32\n");
                      sprintf(ctx.out + strlen(ctx.out), "    call %s\n", inst->data.call.func_name);
@@ -253,7 +285,17 @@ void asm_build_from_cfg(char* out, FunctionInfo* func_info, SymbolTable* locals,
                     break;
                 case IR_RET:
                     if (inst->data.ret.has_value) {
-                        emit_load_operand(&ctx, &inst->data.ret.value, "eax");
+                        if (inst->data.ret.value.kind == OPERAND_VAR &&
+                            symbol_table_lookup(&ctx.local_vars, inst->data.ret.value.data.var.name) &&
+                            symbol_table_lookup(&ctx.local_vars, inst->data.ret.value.data.var.name)->type->kind == TYPE_STRING) {
+                            // Return string variable
+                            int offset = get_var_offset(&ctx.local_vars, inst->data.ret.value.data.var.name);
+                            sprintf(ctx.out + strlen(ctx.out), "    mov rax, [rbp + %d]\n", offset);
+                        } else if (inst->data.ret.value.kind == OPERAND_CONST && inst->data.ret.value.data.const_val.type->kind == TYPE_STRING) {
+                            emit_load_operand(&ctx, &inst->data.ret.value, "rax");
+                        } else {
+                            emit_load_operand(&ctx, &inst->data.ret.value, "eax");
+                        }
                     }
                     emit_epilogue(&ctx);
                     break;
@@ -265,4 +307,10 @@ void asm_build_from_cfg(char* out, FunctionInfo* func_info, SymbolTable* locals,
         }
     }
     // No extra epilogue for main, as it's handled in IR_RET
+
+    // Append data section if there are strings
+    if (strlen(ctx.data_section) > 0) {
+        sprintf(out + strlen(out), "\nsection .data\n");
+        sprintf(out + strlen(out), "%s", ctx.data_section);
+    }
 }
