@@ -14,6 +14,10 @@ extern def rand() of int end
 //Напечатать символ по его ASCII коду
 extern def putchar(c of int) of int end
 
+//Напечатать строку
+extern def puts(s of string) end
+
+
 //Умножить два числа
 def square(x of int) of int
     return x * x;
@@ -42,6 +46,10 @@ putchar(10);      // выводим перевод строки (\n)
 c = getchar();     // читаем символ (программа ждёт ввод!)
 putchar(c);        // выводим его
 putchar(10);      // выводим перевод строки (\n)
+
+s = "Hello, World!"; // Test string literal
+
+puts(s);
 
 return r;
 
