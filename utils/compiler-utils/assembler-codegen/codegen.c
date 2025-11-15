@@ -3,9 +3,13 @@
 #include <string.h>
 
 
-//Выравнивает размер стека до 16 байт, как требуется для Windows x64 ABI.
-static int align_to_16(int size) {
-    return (size + 15) & ~15;
+//Выравнивает размер стека так, чтобы после push rbp стек был выровнен по 16 байтам перед вызовами функций.
+static int align_stack_size(int size) {
+    int aligned = (size + 15) & ~15; // round up to 16
+    if ((aligned % 16) == 0) {
+        aligned += 8;
+    }
+    return aligned;
 }
 
 
@@ -19,7 +23,7 @@ void codegen_layout_stack_frame(SymbolTable* locals, int* out_frame_size) {
         offset -= 4;
     }
     int frame_size = -offset; // Total size needed
-    *out_frame_size = align_to_16(frame_size);
+    *out_frame_size = align_stack_size(frame_size);
 }
 
 //Генерирует пролог функции: метку, push rbp, mov rbp, rsp, sub rsp для резервирования места.
