@@ -231,7 +231,9 @@ void asm_build_from_cfg(char* out, FunctionInfo* func_info, SymbolTable* locals,
                      for (int k = 0; k < inst->data.call.num_args && k < 4; k++) {
                          emit_load_operand(&ctx, &inst->data.call.args[k], arg_regs[k]);
                      }
+                     sprintf(ctx.out + strlen(ctx.out), "    sub rsp, 32\n");
                      sprintf(ctx.out + strlen(ctx.out), "    call %s\n", inst->data.call.func_name);
+                     sprintf(ctx.out + strlen(ctx.out), "    add rsp, 32\n");
                      if (strcmp(inst->data.call.result, "") != 0) {
                          emit_store_to_var(&ctx, inst->data.call.result, "eax");
                      }
