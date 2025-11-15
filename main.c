@@ -233,5 +233,35 @@ int main(const int argc, char *argv[]) {
     ts_parser_delete(parser);
     free(source_code);
 
+
+    // === СБОРКА ВСЕХ .asm → program.exe В УКАЗАННОЙ ПАПКЕ ===
+    printf("Assembling and linking all functions into program.exe...\n");
+
+    const char* asm_dir = argv[4];
+    char cmd[2048];
+
+    // Команда для Windows cmd:
+    // 1. Перейти в папку asm
+    // 2. Удалить старые .obj (если есть)
+    // 3. Собрать все .asm → .obj через nasm
+    // 4. Слинковать все .obj в program.exe через gcc
+    snprintf(cmd, sizeof(cmd),
+        "cd /d \"%s\" && "
+        "del *.obj 2>nul && "
+        "(for %%f in (*.asm) do nasm -f win64 \"%%f\" -o \"%%~nf.obj\") && "
+        "gcc *.obj -o program.exe",
+        asm_dir
+    );
+
+    printf("Executing: %s\n", cmd);
+    int result = system(cmd);
+
+    if (result == 0) {
+        printf("✅ Successfully built: %s\\program.exe\n", asm_dir);
+    } else {
+        fprintf(stderr, "❌ Assembly or linking failed (exit code: %d).\n", result);
+        return 1;
+    }
+
     return 0;
 }
