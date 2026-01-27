@@ -1,0 +1,9 @@
+graph TD
+    BB_0["BB_0\nt1 = 1\ni = t1\nt4 = 5\nt2 = (i < t4)\ngoto BB_1\n"]
+    BB_1["BB_1\nt7 = 5\nt5 = (i < t7)\nif t5 goto BB_2 else BB_3\n"]
+    BB_2["BB_2\nt11 = 1\nt9 = i + t11\ni = t9\ngoto BB_1\n"]
+    BB_3["BB_3\nt14 = 0\nt13 = call time(t14)\nt = t13\nt15 = call srand(t)\nt18 = call rand()\nr = t18\nt20 = 65\nt19 = call putchar(t20)\nt22 = 10\nt21 = call putchar(t22)\nt24 = call getchar()\nc = t24\nt25 = call putchar(c)\nt28 = 10\nt27 = call putchar(t28)\nt30 = "Hello, World!"\ns = t30\nt31 = call puts(s)\nt34 = "%d"\nt35 = 10\nt33 = call printf(t34, t35)\nt37 = 10\nt36 = call putchar(t37)\nt39 = "%c\n"\nt40 = 65\nt38 = call printf(t39, t40)\nt42 = "%d"\nt43 = 65\nt41 = call printf(t42, t43)\nreturn r\n"]
+    BB_0 --> BB_1
+    BB_1 --> BB_2
+    BB_1 --> BB_3
+    BB_2 --> BB_1
